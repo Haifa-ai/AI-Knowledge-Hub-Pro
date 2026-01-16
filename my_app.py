@@ -4,55 +4,53 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import google.generativeai as genai
 import os
 
-# --- 1. إعدادات الصفحة والتصميم الجمالي ---
+# --- 1. إعدادات الصفحة والتصميم الجمالي الفخم ---
 st.set_page_config(page_title="AI Knowledge Hub", page_icon="🧠", layout="centered")
 
-# إضافة لمسات جمالية باستخدام CSS (تكبير الخط وتحسين الألوان)
+# إضافة CSS مخصص لتكبير الخط وتحسين شكل الأزرار
 st.markdown("""
     <style>
-    .main {
-        background-color: #f5f7f9;
-    }
+    .main { background-color: #f8fafc; }
     .stButton>button {
         width: 100%;
-        border-radius: 10px;
-        height: 3em;
-        background-color: #4CAF50;
+        border-radius: 12px;
+        height: 3.5em;
+        background-image: linear-gradient(to right, #1e3a8a, #3b82f6);
         color: white;
-        font-size: 18px;
+        font-size: 20px !important;
         font-weight: bold;
+        border: none;
     }
     h1 {
-        color: #1E3A8A;
-        font-family: 'Arial';
-        font-size: 40px !important;
+        color: #1e3a8a;
+        font-size: 45px !important;
         text-align: center;
+        margin-bottom: 0px;
     }
-    .stTextInput>div>div>input {
-        font-size: 20px !important;
-    }
-    .stRadio>div {
-        flex-direction: row;
+    .stTextInput input { font-size: 18px !important; }
+    .stRadio div[role='radiogroup'] {
         justify-content: center;
-        gap: 20px;
-        font-size: 22px !important;
+        gap: 30px;
     }
+    div[data-baseweb="radio"] div { font-size: 20px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. إعداد المفتاح بأمان ---
+# --- 2. إعداد المفتاح والتحقق منه ---
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 else:
-    st.warning("⚠️ يرجى إضافة GOOGLE_API_KEY في إعدادات Secrets.")
+    st.error("⚠️ لم يتم العثور على GOOGLE_API_KEY في Secrets!")
 
-# --- 3. وظائف المعالجة ---
+# --- 3. وظائف معالجة البيانات ---
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text() or ""
+        try:
+            pdf_reader = PdfReader(pdf)
+            for page in pdf_reader.pages:
+                text += page.extract_text() or ""
+        except: continue
     return text
 
 def get_youtube_text(video_url):
@@ -63,75 +61,80 @@ def get_youtube_text(video_url):
             video_id = video_url.split("/")[-1]
         transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['ar', 'en'])
         return " ".join([i['text'] for i in transcript])
-    except:
-        return None
+    except: return None
 
-# --- 4. واجهة المستخدم الرئيسية (بدون Sidebar) ---
+# --- 4. واجهة المستخدم الرئيسية ---
 st.markdown("<h1>🧠 خبير المعرفة الذكي</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 20px;'>ارفع ملفاتك أو ضع رابط فيديو وابدأ الدردشة مع المحتوى</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 22px; color: #64748b;'>قم بتحليل الكتب أو الفيديوهات بضغطة زر</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# تبديل المصدر في الصفحة الرئيسية
-source_type = st.radio("اختر مصدر البيانات:", ("📄 ملف PDF", "🎥 رابط YouTube"))
+# اختيار المصدر بشكل أنيق في المنتصف
+source_type = st.radio("", ("📄 ملف PDF", "🎥 فيديو YouTube"), horizontal=True)
 
-# مساحة لحفظ النص في الجلسة
 if 'final_context' not in st.session_state:
     st.session_state['final_context'] = ""
 
-col1, col2, col3 = st.columns([1, 2, 1])
-
-with col2:
+# عرض أدوات الرفع بناءً على الاختيار
+col_main = st.columns([1, 4, 1])[1]
+with col_main:
     if source_type == "📄 ملف PDF":
-        uploaded_files = st.file_uploader("ارفع ملفات الـ PDF هنا", accept_multiple_files=True, type=['pdf'])
-        if st.button("تحليل المستندات"):
+        uploaded_files = st.file_uploader("ارفع ملفاتك هنا", accept_multiple_files=True, type=['pdf'])
+        if st.button("🚀 ابدأ تحليل المستندات"):
             if uploaded_files:
-                with st.spinner("جاري القراءة..."):
+                with st.spinner("جاري استخراج المعرفة..."):
                     st.session_state['final_context'] = get_pdf_text(uploaded_files)
-                    st.success("✅ تم التحليل بنجاح!")
-            else:
-                st.error("يرجى اختيار ملف!")
-
+                    st.success("✅ تم تحليل الكتاب بنجاح!")
+            else: st.warning("يرجى اختيار ملف أولاً.")
     else:
-        yt_link = st.text_input("ضع رابط YouTube هنا:", placeholder="https://www.youtube.com/watch?v=...")
-        if st.button("تحليل الفيديو"):
+        yt_link = st.text_input("ضع رابط الفيديو هنا:", placeholder="https://www.youtube.com/watch?v=...")
+        if st.button("🚀 ابدأ تحليل الفيديو"):
             if yt_link:
-                with st.spinner("جاري استخراج النص..."):
+                with st.spinner("جاري معالجة الفيديو..."):
                     st.session_state['final_context'] = get_youtube_text(yt_link)
                     if st.session_state['final_context']:
-                        st.success("✅ تم تحليل الفيديو!")
-                    else:
-                        st.error("تعذر جلب النص. تأكد من وجود ترجمة للفيديو.")
+                        st.success("✅ تم تحليل الفيديو بنجاح!")
+                    else: st.error("تعذر جلب النص. تأكد من وجود ترجمة.")
 
 st.markdown("---")
 
-# --- 5. منطقة الدردشة ---
-st.markdown("<h3 style='text-align: center;'>💬 اسأل أي سؤال حول المحتوى:</h3>", unsafe_allow_html=True)
-user_query = st.text_input("", placeholder="اكتب سؤالك هنا...")
+# --- 5. منطقة الدردشة الذكية (مع البحث التلقائي عن الموديل) ---
+st.markdown("<h2 style='text-align: center;'>💬 اسأل خبيرك الآن</h2>", unsafe_allow_html=True)
+user_query = st.text_input("", placeholder="ماذا تريد أن تعرف عن المحتوى؟")
 
 if user_query:
     if st.session_state['final_context']:
         try:
-            with st.spinner("جاري التفكير..."):
-                # استخدام الموديل الأكثر استقراراً لتجنب خطأ 404
-                model = genai.GenerativeModel('gemini-1.5-flash')
+            with st.spinner("جاري استحضار الإجابة..."):
+                # --- تقنية الاكتشاف التلقائي للموديلات ---
+                # نجلب كل الموديلات المتاحة في حسابك التي تدعم توليد المحتوى
+                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
                 
-                full_prompt = f"""
-                أنت مساعد ذكي. بناءً على النص التالي فقط، أجب على السؤال بدقة واحترافية.
-                إذا لم تكن الإجابة موجودة، قل 'المعلومة غير متوفرة في المصدر'.
+                # ترتيب الأولويات: نبحث عن 1.5 flash أولاً، ثم 1.0 pro، ثم أي موديل متاح
+                selected_model = ""
+                if 'models/gemini-1.5-flash' in available_models:
+                    selected_model = 'models/gemini-1.5-flash'
+                elif 'models/gemini-pro' in available_models:
+                    selected_model = 'models/gemini-pro'
+                else:
+                    selected_model = available_models[0] # اختيار أول موديل متاح كحل نهائي
                 
-                نص المصدر:
-                {st.session_state['final_context'][:15000]}
+                model = genai.GenerativeModel(selected_model)
                 
-                السؤال:
-                {user_query}
+                # بناء البرومبت (Prompt)
+                prompt = f"""
+                أجب على السؤال التالي بناءً على النص المزود فقط.
+                السؤال: {user_query}
+                
+                النص: {st.session_state['final_context'][:20000]}
                 """
                 
-                response = model.generate_content(full_prompt)
+                response = model.generate_content(prompt)
                 st.markdown("---")
-                st.markdown("### 🤖 الإجابة:")
-                st.info(response.text)
+                st.markdown(f"<div style='background-color: #e2e8f0; padding: 20px; border-radius: 10px; font-size: 20px;'>{response.text}</div>", unsafe_allow_html=True)
+                
         except Exception as e:
-            st.error(f"حدث خطأ في الاتصال: {e}")
+            st.error(f"❌ حدث خطأ فني: {e}")
+            st.info("حاول تحديث الصفحة أو التحقق من مفتاح الـ API.")
     else:
-        st.warning("⚠️ حلل مصدراً أولاً (PDF أو YouTube) لكي أتمكن من إجابتك.")
+        st.warning("⚠️ يرجى تحميل وتحليل مصدر أولاً.")
         
