@@ -1,9 +1,4 @@
 streamlit
 pypdf2
 youtube_transcript_api
-langchain
-langchain-text-splitters
-langchain-community
-langchain-google-genai
-faiss-cpu
 google-generativeai
